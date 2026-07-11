@@ -47,9 +47,32 @@
   a{color:#5aa2e8;text-decoration:none}
   #map text{paint-order:stroke;stroke:#0a1929;stroke-width:3px;stroke-linejoin:round}
   @keyframes pulse{0%{opacity:.8;transform:scale(1)}70%{opacity:0;transform:scale(2.6)}100%{opacity:0;transform:scale(2.6)}}
-  .pulse{animation:pulse 2s ease-out infinite;transform-box:fill-box;transform-origin:center}
+  .pulse{animation:pulse 2.4s ease-out infinite;transform-box:fill-box;transform-origin:center}
   @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes spinrev{to{transform:rotate(-360deg)}}
   .spin{animation:spin 6s linear infinite;transform-box:fill-box;transform-origin:center}
+  .spin3{animation:spin 3.2s linear infinite;transform-box:fill-box;transform-origin:center}
+  .spinR{animation:spinrev 16s linear infinite;transform-box:fill-box;transform-origin:center}
+  .cy{display:inline-block;animation:spin 7s linear infinite}
+  @keyframes fadein{to{opacity:1}}
+  .seg{opacity:0;animation:fadein .45s ease forwards}
+  @keyframes dashflow{to{stroke-dashoffset:-24}}
+  .flow{animation:dashflow 1.1s linear infinite}
+  @keyframes dashflow2{to{stroke-dashoffset:-14}}
+  .flow2{animation:dashflow2 1.3s linear infinite}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+  .breathe{transform-box:fill-box;transform-origin:center;animation:breathe 4.5s ease-in-out infinite,dashflow2 3.2s linear infinite}
+  @keyframes ringpulse{0%{opacity:.9;transform:scale(.35)}80%{opacity:0;transform:scale(1.7)}100%{opacity:0;transform:scale(1.7)}}
+  .ringp{animation:ringpulse 2.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes cardin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .card{animation:cardin .55s ease both}
+  aside .card:nth-child(2){animation-delay:.14s}
+  aside .card:nth-child(3){animation-delay:.28s}
+  header .chip,#alert{animation:cardin .5s ease both}
+  .overlay{animation:cardin .6s ease both}
+  @keyframes glowred{0%,100%{box-shadow:0 0 4px 0 rgba(255,80,80,.25)}50%{box-shadow:0 0 16px 3px rgba(255,80,80,.65)}}
+  .al-red{animation:glowred 1.5s ease-in-out infinite}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.01s !important;animation-iteration-count:1 !important}}
 </style>
 </head>
 <body>
@@ -104,7 +127,7 @@ const PROV_EN = {'北京':'Beijing','天津':'Tianjin','河北':'Hebei','山西'
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const L = {
   zh:{
-    title:'台风实时监控 · 江阴', h1:'🌀 台风实时监控', loading:'加载中…', refresh:'立即刷新', refreshing:'刷新中…',
+    title:'台风实时监控 · 江阴', h1:'台风实时监控', loading:'加载中…', refresh:'立即刷新', refreshing:'刷新中…',
     countdown:(m,s)=>`${m}:${s}后自动刷新`, obs:'实况', direct:' · 直连官方', stale:' ⚠︎旧缓存',
     hNow:'实况', hJy:'江阴影响 · 你的位置', hFc:'中央气象台预报路径',
     kPos:'中心位置', kInt:'强度', kPres:'中心气压', kMove:'移向/移速', kR7:'7级风圈', kR10:'10级风圈',
@@ -119,7 +142,7 @@ const L = {
     btnLang:'EN', htmlLang:'zh-CN',
   },
   en:{
-    title:'Typhoon Monitor · Jiangyin', h1:'🌀 Typhoon Live Monitor', loading:'Loading…', refresh:'Refresh', refreshing:'Refreshing…',
+    title:'Typhoon Monitor · Jiangyin', h1:'Typhoon Live Monitor', loading:'Loading…', refresh:'Refresh', refreshing:'Refreshing…',
     countdown:(m,s)=>`auto refresh in ${m}:${s}`, obs:'Obs', direct:' · direct API', stale:' ⚠︎ stale cache',
     hNow:'Current status', hJy:'Jiangyin impact · Your location', hFc:'CMA forecast track',
     kPos:'Center position', kInt:'Intensity', kPres:'Central pressure', kMove:'Movement', kR7:'Gale radius (F7)', kR10:'Storm radius (F10)',
@@ -148,6 +171,7 @@ const num=v=>parseFloat(v);
 const fmtT=tm=>{const m=String(tm).match(/(\d+)-(\d+)-(\d+) (\d+):/);if(!m)return tm;return lang==='en'?`${MON[+m[2]-1]} ${+m[3]} ${m[4]}:00`:`${+m[3]}日${m[4]}时`;};
 const catColor=s=>CAT_COLOR[s]||'#94a3b8';
 function hav(a,b){const R=6371,r=Math.PI/180;const dLa=(b.lat-a.lat)*r,dLo=(b.lon-a.lon)*r;const x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2;return Math.round(2*R*Math.asin(Math.sqrt(x)));}
+function animNum(el,v){if(!el)return;const t0=performance.now(),d=800;const f=n=>{const p=Math.min(1,(n-t0)/d),e=1-Math.pow(1-p,3);el.textContent=Math.round(v*e);if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
 
 function makeProj(pts){
   let lo0=1e9,lo1=-1e9,la0=1e9,la1=-1e9;
@@ -217,7 +241,7 @@ function windCircleSVG(pt){
     if(q.length<4||q.some(isNaN)||!q.some(v=>v>0))continue;
     const [ne,se,sw,nw]=q.map(v=>proj.kmPx(v));
     const d=`M${cx} ${cy-ne}A${ne} ${ne} 0 0 1 ${cx+ne} ${cy}L${cx+se} ${cy}A${se} ${se} 0 0 1 ${cx} ${cy+se}L${cx} ${cy+sw}A${sw} ${sw} 0 0 1 ${cx-sw} ${cy}L${cx-nw} ${cy}A${nw} ${nw} 0 0 1 ${cx} ${cy-nw}Z`;
-    out+=`<path d="${d}" fill="${color}" fill-opacity="${op}" stroke="${color}" stroke-opacity=".5" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>`;
+    out+=`<path d="${d}" fill="${color}" fill-opacity="${op}" stroke="${color}" stroke-opacity=".5" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke" class="breathe"/>`;
   }
   return out;
 }
@@ -229,7 +253,7 @@ function tip(pt,extra){
 function applyStatic(){
   document.documentElement.lang=t('htmlLang');
   document.title=t('title');
-  $('h-title').textContent=t('h1');
+  $('h-title').innerHTML='<span class="cy">🌀</span> '+t('h1');
   $('btn-refresh').textContent=t('refresh');
   $('btn-lang').textContent=t('btnLang');
   $('h-now').textContent=t('hNow');
@@ -264,12 +288,12 @@ function render(){
   let seg='',dots='';
   for(let i=1;i<pts.length;i++){
     const a=pts[i-1],b=pts[i];
-    seg+=`<line x1="${proj.x(num(a.lng)).toFixed(1)}" y1="${proj.y(num(a.lat)).toFixed(1)}" x2="${proj.x(num(b.lng)).toFixed(1)}" y2="${proj.y(num(b.lat)).toFixed(1)}" stroke="${catColor(b.strong)}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`;
+    seg+=`<line x1="${proj.x(num(a.lng)).toFixed(1)}" y1="${proj.y(num(a.lat)).toFixed(1)}" x2="${proj.x(num(b.lng)).toFixed(1)}" y2="${proj.y(num(b.lat)).toFixed(1)}" stroke="${catColor(b.strong)}" stroke-width="2.5" vector-effect="non-scaling-stroke" class="seg" style="animation-delay:${i*12}ms"/>`;
   }
   pts.forEach((p,i)=>{
     const hr=+p.time.slice(11,13);
     if(i!==0&&i!==pts.length-1&&hr%6!==2)return;
-    dots+=`<circle cx="${proj.x(num(p.lng)).toFixed(1)}" cy="${proj.y(num(p.lat)).toFixed(1)}" r="3.5" fill="${catColor(p.strong)}" stroke="#0a1929" stroke-width="1" data-tip="${tip(p)}"/>`;
+    dots+=`<circle cx="${proj.x(num(p.lng)).toFixed(1)}" cy="${proj.y(num(p.lat)).toFixed(1)}" r="3.5" fill="${catColor(p.strong)}" stroke="#0a1929" stroke-width="1" data-tip="${tip(p)}" class="seg" style="animation-delay:${i*12}ms"/>`;
   });
 
   let fcsvg='';
@@ -279,13 +303,13 @@ function render(){
     if(!fp||!fp.length)continue;
     const chain=[{lng:cur.lng,lat:cur.lat},...fp];
     const line=chain.map((p,i)=>`${i?'L':'M'}${proj.x(num(p.lng)).toFixed(1)} ${proj.y(num(p.lat)).toFixed(1)}`).join('');
-    fcsvg+=`<path d="${line}" fill="none" stroke="${ag.color}" stroke-width="${ag.w}" stroke-dasharray="7 5" vector-effect="non-scaling-stroke"/>`;
+    fcsvg+=`<path d="${line}" fill="none" stroke="${ag.color}" stroke-width="${ag.w}" stroke-dasharray="7 5" vector-effect="non-scaling-stroke" class="flow"/>`;
     fp.forEach((p,i)=>{
       const x=proj.x(num(p.lng)),y=proj.y(num(p.lat));
-      fcsvg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#0a1929" stroke="${ag.color}" stroke-width="1.8" data-tip="${tip(p,' · '+(lang==='en'?ag.en:ag.key))}"/>`;
+      fcsvg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#0a1929" stroke="${ag.color}" stroke-width="1.8" data-tip="${tip(p,' · '+(lang==='en'?ag.en:ag.key))}" class="seg" style="animation-delay:${1100+i*90}ms"/>`;
       if(ag.key==='中国'&&i>0){
         const dy=i%2?-10:20;
-        fcsvg+=`<text x="${(x+8).toFixed(0)}" y="${(y+dy).toFixed(0)}" fill="#cbd5e1" font-size="var(--fs2,12px)">${fmtT(p.time)}${p.power?' '+t('lvl')(p.power):''}</text>`;
+        fcsvg+=`<text x="${(x+8).toFixed(0)}" y="${(y+dy).toFixed(0)}" fill="#cbd5e1" font-size="var(--fs2,12px)" class="seg" style="animation-delay:${1140+i*90}ms">${fmtT(p.time)}${p.power?' '+t('lvl')(p.power):''}</text>`;
       }
     });
   }
@@ -293,12 +317,18 @@ function render(){
   const jx=proj.x(JY.lon),jy_=proj.y(JY.lat),cx=proj.x(curLL.lon),cy=proj.y(curLL.lat);
   const distNow=hav(curLL,JY);
   svg+=seg+dots+fcsvg;
-  svg+=`<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${jx.toFixed(1)}" y2="${jy_.toFixed(1)}" stroke="#ff8fa3" stroke-width="1" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" opacity=".7"/>`;
+  svg+=`<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${jx.toFixed(1)}" y2="${jy_.toFixed(1)}" stroke="#ff8fa3" stroke-width="1" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" opacity=".7" class="flow2"/>`;
   svg+=`<text x="${((cx+jx)/2).toFixed(0)}" y="${((cy+jy_)/2-6).toFixed(0)}" fill="#ff8fa3" font-size="var(--fs2,12px)" text-anchor="middle">${distNow}km</text>`;
-  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="10" fill="${catColor(cur.strong)}" opacity=".6" class="pulse"/>`;
-  svg+=`<g class="spin"><path d="M${cx} ${cy}m0 -9a9 9 0 0 1 9 9 12 12 0 0 0 3 -10 12 12 0 0 1 -12 1zM${cx} ${cy}m0 9a9 9 0 0 1 -9 -9 12 12 0 0 0 -3 10 12 12 0 0 1 12 -1z" fill="${catColor(cur.strong)}"/></g>`;
-  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="#fff" data-tip="${tip(cur,t('nowPos'))}"/>`;
+  const cc=catColor(cur.strong);
+  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="12" fill="${cc}" opacity=".55" class="pulse"/>`;
+  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="12" fill="${cc}" opacity=".35" class="pulse" style="animation-delay:1.2s"/>`;
+  svg+=`<g class="spinR"><path d="M${cx-30} ${cy}A30 30 0 0 1 ${cx} ${cy-30}" fill="none" stroke="${cc}" stroke-width="5" stroke-linecap="round" opacity=".16"/><path d="M${cx+30} ${cy}A30 30 0 0 1 ${cx} ${cy+30}" fill="none" stroke="${cc}" stroke-width="5" stroke-linecap="round" opacity=".16"/></g>`;
+  const arm=`M${cx} ${cy-17}A17 17 0 0 1 ${cx+17} ${cy}A23 23 0 0 0 ${cx} ${cy-23}Z`;
+  svg+=`<g class="spin3"><path d="${arm}" fill="${cc}" opacity=".9"/><path d="${arm}" transform="rotate(120 ${cx} ${cy})" fill="${cc}" opacity=".9"/><path d="${arm}" transform="rotate(240 ${cx} ${cy})" fill="${cc}" opacity=".9"/></g>`;
+  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6.5" fill="${cc}"/><circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="#0a1929"/>`;
+  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="15" fill="transparent" data-tip="${tip(cur,t('nowPos'))}"/>`;
   const st=(r,ir)=>{let p='';for(let i=0;i<10;i++){const rr=i%2?ir:r,a=Math.PI*(i/5)-Math.PI/2;p+=(i?'L':'M')+(jx+rr*Math.cos(a)).toFixed(1)+' '+(jy_+rr*Math.sin(a)).toFixed(1);}return p+'Z';};
+  svg+=`<circle cx="${jx.toFixed(1)}" cy="${jy_.toFixed(1)}" r="16" fill="none" stroke="var(--pink)" stroke-width="1.5" class="ringp"/>`;
   svg+=`<path d="${st(11,4.6)}" fill="var(--pink)" stroke="#fff" stroke-width="1.2" vector-effect="non-scaling-stroke"/><text x="${(jx+14).toFixed(0)}" y="${(jy_+5).toFixed(0)}" fill="#ff8fa3" font-size="var(--fs1,14px)" font-weight="600">${t('here')}</text>`;
   $('world').innerHTML=svg;
   applyVT();
@@ -331,11 +361,13 @@ function render(){
   if(distNow<minD){minD=distNow;minT=t('now');}
   $('jy-body').innerHTML=`
     <div style="display:flex;gap:20px;align-items:baseline;flex-wrap:wrap">
-      <div><div class="k" style="color:var(--fg3);font-size:12px">${t('distNow')}</div><div class="big" style="color:${distNow<300?'#ffb454':'#4ade80'}">${distNow}<span style="font-size:14px"> km</span></div></div>
-      <div><div class="k" style="color:var(--fg3);font-size:12px">${t('closest')}</div><div class="big" style="color:#ffb454">${minD===1e9?'—':minD}<span style="font-size:14px"> km</span></div><div style="font-size:12px;color:var(--fg3)">${esc(minT)}</div></div>
+      <div><div class="k" style="color:var(--fg3);font-size:12px">${t('distNow')}</div><div class="big" style="color:${distNow<300?'#ffb454':'#4ade80'}"><span id="n-dist">${distNow}</span><span style="font-size:14px"> km</span></div></div>
+      <div><div class="k" style="color:var(--fg3);font-size:12px">${t('closest')}</div><div class="big" style="color:#ffb454">${minD===1e9?'—':`<span id="n-min">${minD}</span>`}<span style="font-size:14px"> km</span></div><div style="font-size:12px;color:var(--fg3)">${esc(minT)}</div></div>
       <div><div class="k" style="color:var(--fg3);font-size:12px">${t('risk')}</div><div class="big" style="color:#ffb454">${t('riskHigh')}</div></div>
     </div>
     <div style="font-size:12.5px;color:var(--fg2);margin-top:10px;line-height:1.7">${t('warn')}</div>`;
+  animNum($('n-dist'),distNow);
+  if(minD!==1e9)animNum($('n-min'),minD);
 
   let rows=`<tr><th>${t('thTime')}</th><th>${t('thPos')}</th><th>${t('thInt')}</th><th>${t('thPres')}</th><th>${t('thDist')}</th></tr>`;
   cma.forEach((p,i)=>{
