@@ -19,6 +19,7 @@
   #refresh-box{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg2)}
   button{background:#123055;color:#cfe3ff;border:1px solid #29527f;border-radius:8px;padding:5px 14px;font-size:13px;cursor:pointer}
   button:hover{background:#1a4070}
+  #btn-lang{font-weight:600;min-width:52px}
   main{display:flex;flex-wrap:wrap;gap:12px;padding:12px 16px}
   #map-wrap{flex:1 1 640px;min-width:340px;position:relative;background:var(--sea);border:1px solid var(--line);border-radius:12px;overflow:hidden}
   #map{display:block;width:100%;height:auto;cursor:grab}
@@ -53,7 +54,7 @@
 </head>
 <body>
 <header>
-  <h1>🌀 台风实时监控</h1>
+  <h1 id="h-title">🌀 台风实时监控</h1>
   <span class="chip" id="c-name"><b>加载中…</b></span>
   <span class="chip" id="c-strong"></span>
   <span class="chip" id="c-move"></span>
@@ -62,6 +63,7 @@
     <span id="c-time"></span>
     <span id="countdown"></span>
     <button id="btn-refresh">立即刷新</button>
+    <button id="btn-lang">EN</button>
   </div>
 </header>
 <main>
@@ -75,30 +77,67 @@
     <div id="tooltip"></div>
   </div>
   <aside>
-    <div class="card" id="card-now"><h3>实况</h3><div class="kv" id="kv-now"></div></div>
-    <div class="card" id="card-jy"><h3>江阴影响 · 你的位置</h3><div id="jy-body"></div></div>
-    <div class="card"><h3>中央气象台预报路径</h3><div style="overflow-x:auto"><table id="fc-table"></table></div></div>
+    <div class="card" id="card-now"><h3 id="h-now">实况</h3><div class="kv" id="kv-now"></div></div>
+    <div class="card" id="card-jy"><h3 id="h-jy">江阴影响 · 你的位置</h3><div id="jy-body"></div></div>
+    <div class="card"><h3 id="h-fc">中央气象台预报路径</h3><div style="overflow-x:auto"><table id="fc-table"></table></div></div>
   </aside>
 </main>
-<footer>
-  数据源：<a href="https://typhoon.slt.zj.gov.cn" target="_blank">浙江省水利厅·台风路径系统</a>（与中央气象台同源，约每小时更新实况）· 页面每10分钟自动刷新 · 风圈为按象限半径示意 · 预报有不确定性，请以<a href="http://www.nmc.cn" target="_blank">中央气象台</a>和江阴市气象局最新发布为准
-</footer>
+<footer id="foot"></footer>
 <script>
 const JY = {lon:120.286, lat:31.909};
 const REFRESH_MS = 10*60*1000;
 const CAT_COLOR = {'热带低压':'#34d399','热带风暴':'#38bdf8','强热带风暴':'#fbbf24','台风':'#fb923c','强台风':'#f87171','超强台风':'#e879f9'};
+const CAT_EN = {'热带低压':'Tropical depression','热带风暴':'Tropical storm','强热带风暴':'Severe trop. storm','台风':'Typhoon','强台风':'Severe typhoon','超强台风':'Super typhoon'};
 const AGENCY = [
-  {key:'中国', color:'#ff5757', w:2.5, on:true},
-  {key:'日本', color:'#4da6ff', w:1.5, on:false},
-  {key:'美国', color:'#c084fc', w:1.5, on:false},
-  {key:'中国香港', color:'#ffd94d', w:1.5, on:false},
-  {key:'中国台湾', color:'#2dd4bf', w:1.5, on:false},
+  {key:'中国', en:'CMA · China', color:'#ff5757', w:2.5, on:true},
+  {key:'日本', en:'JMA · Japan', color:'#4da6ff', w:1.5, on:false},
+  {key:'美国', en:'JTWC · US', color:'#c084fc', w:1.5, on:false},
+  {key:'中国香港', en:'HKO · Hong Kong', color:'#ffd94d', w:1.5, on:false},
+  {key:'中国台湾', en:'CWA · Taiwan', color:'#2dd4bf', w:1.5, on:false},
 ];
 const CITIES = [
-  {n:'上海',lon:121.47,lat:31.23},{n:'杭州',lon:120.16,lat:30.29},{n:'南京',lon:118.78,lat:32.06},
-  {n:'温州',lon:120.70,lat:28.00},{n:'合肥',lon:117.28,lat:31.86},{n:'徐州',lon:117.28,lat:34.26},
-  {n:'青岛',lon:120.38,lat:36.07},{n:'福州',lon:119.30,lat:26.08},
+  {n:'上海',en:'Shanghai',lon:121.47,lat:31.23},{n:'杭州',en:'Hangzhou',lon:120.16,lat:30.29},{n:'南京',en:'Nanjing',lon:118.78,lat:32.06},
+  {n:'温州',en:'Wenzhou',lon:120.70,lat:28.00},{n:'合肥',en:'Hefei',lon:117.28,lat:31.86},{n:'徐州',en:'Xuzhou',lon:117.28,lat:34.26},
+  {n:'青岛',en:'Qingdao',lon:120.38,lat:36.07},{n:'福州',en:'Fuzhou',lon:119.30,lat:26.08},
 ];
+const PROV_EN = {'北京':'Beijing','天津':'Tianjin','河北':'Hebei','山西':'Shanxi','内蒙古':'Inner Mongolia','辽宁':'Liaoning','吉林':'Jilin','黑龙江':'Heilongjiang','上海':'Shanghai','江苏':'Jiangsu','浙江':'Zhejiang','安徽':'Anhui','福建':'Fujian','江西':'Jiangxi','山东':'Shandong','河南':'Henan','湖北':'Hubei','湖南':'Hunan','广东':'Guangdong','广西':'Guangxi','海南':'Hainan','重庆':'Chongqing','四川':'Sichuan','贵州':'Guizhou','云南':'Yunnan','西藏':'Tibet','陕西':'Shaanxi','甘肃':'Gansu','青海':'Qinghai','宁夏':'Ningxia','新疆':'Xinjiang','台湾':'Taiwan','香港':'Hong Kong','澳门':'Macau'};
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const L = {
+  zh:{
+    title:'台风实时监控 · 江阴', h1:'🌀 台风实时监控', loading:'加载中…', refresh:'立即刷新', refreshing:'刷新中…',
+    countdown:(m,s)=>`${m}:${s}后自动刷新`, obs:'实况', direct:' · 直连官方', stale:' ⚠︎旧缓存',
+    hNow:'实况', hJy:'江阴影响 · 你的位置', hFc:'中央气象台预报路径',
+    kPos:'中心位置', kInt:'强度', kPres:'中心气压', kMove:'移向/移速', kR7:'7级风圈', kR10:'10级风圈',
+    distNow:'当前距离', closest:'预计最近', risk:'风险等级', riskHigh:'较重', now:'现在',
+    warn:'江阴市气象局警报：11–13日阵风<b style="color:var(--fg)">7~10级</b>（最强<b style="color:var(--fg)">12日白天</b>），长江江面9~10级；累计雨量50~90mm，主要在12日后半夜至13日。<b style="color:#ffb454">风大于雨</b>，江阴处路径右侧危险半圆。',
+    thTime:'时间', thPos:'位置', thInt:'强度', thPres:'气压', thDist:'距江阴',
+    pastTrack:'已过路径', fcTrack:'预报路径', windRing:'7/10/12级风圈（示意）', agencyCmp:'预报机构对比',
+    alertOk:d=>`距江阴 ${d}km`, alertIn:d=>`⚠ 7级风圈已覆盖江阴（距中心${d}km）`, alertNear:(d,e)=>`⚠ 7级风圈逼近江阴（距风圈边缘约${e}km）`,
+    fail:m=>`数据获取失败（${m}），60秒后重试`, noTy:'当前无活跃台风', noTyMap:'西太平洋当前无活跃编号台风 🌤',
+    numNo:id=>`${id}号`, ended:' · 已停编', moveTo:'移向', here:'江阴 · 你在这', nowPos:' · 现在位置', lvl:p=>`${p}级`, reset:'复位',
+    foot:'数据源：<a href="https://typhoon.slt.zj.gov.cn" target="_blank">浙江省水利厅·台风路径系统</a>（与中央气象台同源，约每小时更新实况）· 页面每10分钟自动刷新 · 风圈为按象限半径示意 · 预报有不确定性，请以<a href="http://www.nmc.cn" target="_blank">中央气象台</a>和江阴市气象局最新发布为准',
+    btnLang:'EN', htmlLang:'zh-CN',
+  },
+  en:{
+    title:'Typhoon Monitor · Jiangyin', h1:'🌀 Typhoon Live Monitor', loading:'Loading…', refresh:'Refresh', refreshing:'Refreshing…',
+    countdown:(m,s)=>`auto refresh in ${m}:${s}`, obs:'Obs', direct:' · direct API', stale:' ⚠︎ stale cache',
+    hNow:'Current status', hJy:'Jiangyin impact · Your location', hFc:'CMA forecast track',
+    kPos:'Center position', kInt:'Intensity', kPres:'Central pressure', kMove:'Movement', kR7:'Gale radius (F7)', kR10:'Storm radius (F10)',
+    distNow:'Current distance', closest:'Closest approach', risk:'Risk level', riskHigh:'High', now:'now',
+    warn:'Jiangyin Meteorological Bureau warning: gusts force <b style="color:var(--fg)">7–10</b> on Jul 11–13 (peaking <b style="color:var(--fg)">daytime Jul 12</b>), force 9–10 over the Yangtze River; total rainfall 50–90 mm, mainly from late Jul 12 night through Jul 13. <b style="color:#ffb454">Wind is the main threat</b> — Jiangyin sits in the dangerous right-hand semicircle of the track.',
+    thTime:'Time', thPos:'Position', thInt:'Intensity', thPres:'Pres.', thDist:'To Jiangyin',
+    pastTrack:'Past track', fcTrack:'Forecast', windRing:'F7/10/12 wind radii (approx.)', agencyCmp:'Agency comparison',
+    alertOk:d=>`${d} km from Jiangyin`, alertIn:d=>`⚠ Gale (F7) circle covers Jiangyin (${d} km from center)`, alertNear:(d,e)=>`⚠ Gale circle nearing Jiangyin (~${e} km from its edge)`,
+    fail:m=>`Data fetch failed (${m}), retrying in 60 s`, noTy:'No active typhoon', noTyMap:'No active named typhoon in the western Pacific 🌤',
+    numNo:id=>`No. ${id}`, ended:' · dissipated', moveTo:'Moving', here:'Jiangyin · You are here', nowPos:' · current position', lvl:p=>`F${p}`, reset:'Reset',
+    foot:'Data: <a href="https://typhoon.slt.zj.gov.cn" target="_blank">Zhejiang Water Resources typhoon track system</a> (same source as CMA, observations update roughly hourly) · Page auto-refreshes every 10 min · Wind circles are quadrant-radius approximations · Forecasts are uncertain — follow the latest from <a href="http://www.nmc.cn" target="_blank">CMA/NMC</a> and the Jiangyin Meteorological Bureau',
+    btnLang:'中文', htmlLang:'en',
+  },
+};
+let lang = localStorage.getItem('ty-lang') || 'zh';
+const t = k => L[lang][k];
+const catName = s => lang==='en' ? (CAT_EN[s]||s) : s;
+const dirName = s => lang==='en' ? String(s||'—').replace(/偏/g,'').replace(/东/g,'E').replace(/西/g,'W').replace(/南/g,'S').replace(/北/g,'N') : (s||'—');
 const W=1200, H=780;
 let china=null, state={data:null, idx:0}, proj=null, nextAt=0;
 let vt={x:0,y:0,k:1};
@@ -106,7 +145,7 @@ let vt={x:0,y:0,k:1};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const num=v=>parseFloat(v);
-const fmtT=t=>{const m=String(t).match(/(\d+)-(\d+) (\d+):/);return m?`${+m[2]}日${m[3]}时`:t;};
+const fmtT=tm=>{const m=String(tm).match(/(\d+)-(\d+)-(\d+) (\d+):/);if(!m)return tm;return lang==='en'?`${MON[+m[2]-1]} ${+m[3]} ${m[4]}:00`:`${+m[3]}日${m[4]}时`;};
 const catColor=s=>CAT_COLOR[s]||'#94a3b8';
 function hav(a,b){const R=6371,r=Math.PI/180;const dLa=(b.lat-a.lat)*r,dLo=(b.lon-a.lon)*r;const x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2;return Math.round(2*R*Math.asin(Math.sqrt(x)));}
 
@@ -132,7 +171,7 @@ function ringPath(ring){
 }
 
 function basemapSVG(){
-  let land='',border='',labels='';
+  let land='',labels='';
   for(const f of (china?china.features:[])){
     const gs=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates;
     let d='';
@@ -145,8 +184,10 @@ function basemapSVG(){
     if(d)land+=`<path d="${d}" fill="var(--land)" stroke="var(--coast)" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
     const ct=f.properties.centroid||f.properties.center;
     if(ct&&proj.inView(ct[0],ct[1])){
-      const nm=f.properties.name.replace(/(省|市|自治区|壮族|回族|维吾尔|特别行政区)/g,'');
-      labels+=`<text x="${proj.x(ct[0]).toFixed(0)}" y="${proj.y(ct[1]).toFixed(0)}" fill="#3d6a94" font-size="var(--fs2,13px)" text-anchor="middle" letter-spacing="3">${esc(nm)}</text>`;
+      let nm=f.properties.name.replace(/(省|市|自治区|壮族|回族|维吾尔|特别行政区)/g,'');
+      if(lang==='en')nm=PROV_EN[nm]||nm;
+      const sp=lang==='en'?'0':'3';
+      labels+=`<text x="${proj.x(ct[0]).toFixed(0)}" y="${proj.y(ct[1]).toFixed(0)}" fill="#3d6a94" font-size="var(--fs2,13px)" text-anchor="middle" letter-spacing="${sp}">${esc(nm)}</text>`;
     }
   }
   let grid='',glab='';
@@ -161,7 +202,7 @@ function basemapSVG(){
   let cities='';
   for(const c of CITIES){
     if(!proj.inView(c.lon,c.lat))continue;
-    cities+=`<circle cx="${proj.x(c.lon).toFixed(1)}" cy="${proj.y(c.lat).toFixed(1)}" r="2.5" fill="#5a7fa6"/><text x="${(proj.x(c.lon)+6).toFixed(0)}" y="${(proj.y(c.lat)-5).toFixed(0)}" fill="#7d9cbe" font-size="var(--fs2,12px)">${c.n}</text>`;
+    cities+=`<circle cx="${proj.x(c.lon).toFixed(1)}" cy="${proj.y(c.lat).toFixed(1)}" r="2.5" fill="#5a7fa6"/><text x="${(proj.x(c.lon)+6).toFixed(0)}" y="${(proj.y(c.lat)-5).toFixed(0)}" fill="#7d9cbe" font-size="var(--fs2,12px)">${lang==='en'?c.en:c.n}</text>`;
   }
   return `<path d="${grid}" stroke="#12233a" stroke-width="1" fill="none" vector-effect="non-scaling-stroke"/>${land}${labels}${glab}${cities}`;
 }
@@ -182,15 +223,28 @@ function windCircleSVG(pt){
 }
 
 function tip(pt,extra){
-  return esc(`${fmtT(pt.time)} · ${pt.strong||''}${pt.power?` ${pt.power}级`:''}${pt.speed?` · ${pt.speed}m/s`:''}${pt.pressure?` · ${pt.pressure}hPa`:''}${extra||''}`);
+  return esc(`${fmtT(pt.time)} · ${catName(pt.strong)||''}${pt.power?` ${t('lvl')(pt.power)}`:''}${pt.speed?` · ${pt.speed}m/s`:''}${pt.pressure?` · ${pt.pressure}hPa`:''}${extra||''}`);
+}
+
+function applyStatic(){
+  document.documentElement.lang=t('htmlLang');
+  document.title=t('title');
+  $('h-title').textContent=t('h1');
+  $('btn-refresh').textContent=t('refresh');
+  $('btn-lang').textContent=t('btnLang');
+  $('h-now').textContent=t('hNow');
+  $('h-jy').textContent=t('hJy');
+  $('h-fc').textContent=t('hFc');
+  $('z-reset').textContent=t('reset');
+  $('foot').innerHTML=t('foot');
 }
 
 function render(){
   const d=state.data;
   const ty=d&&d.typhoons&&d.typhoons[state.idx];
   if(!ty||!ty.points||!ty.points.length){
-    $('c-name').innerHTML='<b>当前无活跃台风</b>';
-    $('world').innerHTML=`<text x="600" y="390" fill="#4a6785" font-size="20" text-anchor="middle">西太平洋当前无活跃编号台风 🌤</text>`;
+    $('c-name').innerHTML=`<b>${t('noTy')}</b>`;
+    $('world').innerHTML=`<text x="600" y="390" fill="#4a6785" font-size="20" text-anchor="middle">${t('noTyMap')}</text>`;
     return;
   }
   const pts=ty.points, cur=pts[pts.length-1];
@@ -228,10 +282,10 @@ function render(){
     fcsvg+=`<path d="${line}" fill="none" stroke="${ag.color}" stroke-width="${ag.w}" stroke-dasharray="7 5" vector-effect="non-scaling-stroke"/>`;
     fp.forEach((p,i)=>{
       const x=proj.x(num(p.lng)),y=proj.y(num(p.lat));
-      fcsvg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#0a1929" stroke="${ag.color}" stroke-width="1.8" data-tip="${tip(p,' · '+ag.key)}"/>`;
+      fcsvg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#0a1929" stroke="${ag.color}" stroke-width="1.8" data-tip="${tip(p,' · '+(lang==='en'?ag.en:ag.key))}"/>`;
       if(ag.key==='中国'&&i>0){
         const dy=i%2?-10:20;
-        fcsvg+=`<text x="${(x+8).toFixed(0)}" y="${(y+dy).toFixed(0)}" fill="#cbd5e1" font-size="var(--fs2,12px)">${fmtT(p.time)}${p.power?' '+p.power+'级':''}</text>`;
+        fcsvg+=`<text x="${(x+8).toFixed(0)}" y="${(y+dy).toFixed(0)}" fill="#cbd5e1" font-size="var(--fs2,12px)">${fmtT(p.time)}${p.power?' '+t('lvl')(p.power):''}</text>`;
       }
     });
   }
@@ -243,57 +297,58 @@ function render(){
   svg+=`<text x="${((cx+jx)/2).toFixed(0)}" y="${((cy+jy_)/2-6).toFixed(0)}" fill="#ff8fa3" font-size="var(--fs2,12px)" text-anchor="middle">${distNow}km</text>`;
   svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="10" fill="${catColor(cur.strong)}" opacity=".6" class="pulse"/>`;
   svg+=`<g class="spin"><path d="M${cx} ${cy}m0 -9a9 9 0 0 1 9 9 12 12 0 0 0 3 -10 12 12 0 0 1 -12 1zM${cx} ${cy}m0 9a9 9 0 0 1 -9 -9 12 12 0 0 0 -3 10 12 12 0 0 1 12 -1z" fill="${catColor(cur.strong)}"/></g>`;
-  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="#fff" data-tip="${tip(cur,' · 现在位置')}"/>`;
+  svg+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="#fff" data-tip="${tip(cur,t('nowPos'))}"/>`;
   const st=(r,ir)=>{let p='';for(let i=0;i<10;i++){const rr=i%2?ir:r,a=Math.PI*(i/5)-Math.PI/2;p+=(i?'L':'M')+(jx+rr*Math.cos(a)).toFixed(1)+' '+(jy_+rr*Math.sin(a)).toFixed(1);}return p+'Z';};
-  svg+=`<path d="${st(11,4.6)}" fill="var(--pink)" stroke="#fff" stroke-width="1.2" vector-effect="non-scaling-stroke"/><text x="${(jx+14).toFixed(0)}" y="${(jy_+5).toFixed(0)}" fill="#ff8fa3" font-size="var(--fs1,14px)" font-weight="600">江阴 · 你在这</text>`;
+  svg+=`<path d="${st(11,4.6)}" fill="var(--pink)" stroke="#fff" stroke-width="1.2" vector-effect="non-scaling-stroke"/><text x="${(jx+14).toFixed(0)}" y="${(jy_+5).toFixed(0)}" fill="#ff8fa3" font-size="var(--fs1,14px)" font-weight="600">${t('here')}</text>`;
   $('world').innerHTML=svg;
   applyVT();
 
-  $('c-name').innerHTML=`<b>${esc(ty.name)}（${esc(ty.enname)}）</b>&nbsp;${esc(ty.tfid)}号${ty.isactive==='1'?'':' · 已停编'}`;
-  $('c-strong').innerHTML=`<span class="dot" style="background:${catColor(cur.strong)}"></span><b>${esc(cur.strong)} ${esc(cur.power)}级</b>&nbsp;${esc(cur.speed)}m/s · ${esc(cur.pressure)}hPa`;
-  $('c-move').innerHTML=`移向 <b>${esc(cur.movedirection||'—')}</b> · ${esc(cur.movespeed||'—')}km/h`;
-  $('c-time').textContent=`实况 ${fmtT(cur.time)}${d.stale?' ⚠︎旧缓存':''}${d.direct?' · 直连官方':''}`;
+  const tyName=lang==='en'?esc(ty.enname):`${esc(ty.name)}（${esc(ty.enname)}）`;
+  $('c-name').innerHTML=`<b>${tyName}</b>&nbsp;${t('numNo')(esc(ty.tfid))}${ty.isactive==='1'?'':t('ended')}`;
+  $('c-strong').innerHTML=`<span class="dot" style="background:${catColor(cur.strong)}"></span><b>${esc(catName(cur.strong))} ${t('lvl')(esc(cur.power))}</b>&nbsp;${esc(cur.speed)}m/s · ${esc(cur.pressure)}hPa`;
+  $('c-move').innerHTML=`${t('moveTo')} <b>${esc(dirName(cur.movedirection))}</b> · ${esc(cur.movespeed||'—')}km/h`;
+  $('c-time').textContent=`${t('obs')} ${fmtT(cur.time)}${d.stale?t('stale'):''}${d.direct?t('direct'):''}`;
 
   const r7q=String(cur.radius7||'').split('|').map(Number);
   const east=JY.lon>=curLL.lon, north=JY.lat>=curLL.lat;
   const qi=east?(north?0:1):(north?3:2);
   const r7=r7q.length===4&&!isNaN(r7q[qi])?r7q[qi]:0;
   const al=$('alert');
-  if(r7&&distNow<=r7){al.className='al-red';al.textContent=`⚠ 7级风圈已覆盖江阴（距中心${distNow}km）`;}
-  else if(r7&&distNow<=r7+120){al.className='al-org';al.textContent=`⚠ 7级风圈逼近江阴（距风圈边缘约${distNow-r7}km）`;}
-  else{al.className='al-ok';al.textContent=`距江阴 ${distNow}km`;}
+  if(r7&&distNow<=r7){al.className='al-red';al.textContent=t('alertIn')(distNow);}
+  else if(r7&&distNow<=r7+120){al.className='al-org';al.textContent=t('alertNear')(distNow,distNow-r7);}
+  else{al.className='al-ok';al.textContent=t('alertOk')(distNow);}
 
   $('kv-now').innerHTML=`
-    <div><div class="k">中心位置</div><div class="v">${esc(cur.lat)}°N / ${esc(cur.lng)}°E</div></div>
-    <div><div class="k">强度</div><div class="v" style="color:${catColor(cur.strong)}">${esc(cur.strong)} ${esc(cur.power)}级（${esc(cur.speed)}m/s）</div></div>
-    <div><div class="k">中心气压</div><div class="v">${esc(cur.pressure)} hPa</div></div>
-    <div><div class="k">移向/移速</div><div class="v">${esc(cur.movedirection||'—')} / ${esc(cur.movespeed||'—')}km/h</div></div>
-    <div><div class="k">7级风圈</div><div class="v">${esc(cur.radius7||'—')} km</div></div>
-    <div><div class="k">10级风圈</div><div class="v">${esc(cur.radius10||'—')} km</div></div>`;
+    <div><div class="k">${t('kPos')}</div><div class="v">${esc(cur.lat)}°N / ${esc(cur.lng)}°E</div></div>
+    <div><div class="k">${t('kInt')}</div><div class="v" style="color:${catColor(cur.strong)}">${esc(catName(cur.strong))} ${t('lvl')(esc(cur.power))}（${esc(cur.speed)}m/s）</div></div>
+    <div><div class="k">${t('kPres')}</div><div class="v">${esc(cur.pressure)} hPa</div></div>
+    <div><div class="k">${t('kMove')}</div><div class="v">${esc(dirName(cur.movedirection))} / ${esc(cur.movespeed||'—')}km/h</div></div>
+    <div><div class="k">${t('kR7')}</div><div class="v">${esc(cur.radius7||'—')} km</div></div>
+    <div><div class="k">${t('kR10')}</div><div class="v">${esc(cur.radius10||'—')} km</div></div>`;
 
   let minD=1e9,minT='';
   cma.forEach(p=>{const dd=hav({lon:num(p.lng),lat:num(p.lat)},JY);if(dd<minD){minD=dd;minT=fmtT(p.time);}});
-  if(distNow<minD){minD=distNow;minT='现在';}
+  if(distNow<minD){minD=distNow;minT=t('now');}
   $('jy-body').innerHTML=`
     <div style="display:flex;gap:20px;align-items:baseline;flex-wrap:wrap">
-      <div><div class="k" style="color:var(--fg3);font-size:12px">当前距离</div><div class="big" style="color:${distNow<300?'#ffb454':'#4ade80'}">${distNow}<span style="font-size:14px"> km</span></div></div>
-      <div><div class="k" style="color:var(--fg3);font-size:12px">预计最近</div><div class="big" style="color:#ffb454">${minD===1e9?'—':minD}<span style="font-size:14px"> km</span></div><div style="font-size:12px;color:var(--fg3)">${esc(minT)}</div></div>
-      <div><div class="k" style="color:var(--fg3);font-size:12px">风险等级</div><div class="big" style="color:#ffb454">较重</div></div>
+      <div><div class="k" style="color:var(--fg3);font-size:12px">${t('distNow')}</div><div class="big" style="color:${distNow<300?'#ffb454':'#4ade80'}">${distNow}<span style="font-size:14px"> km</span></div></div>
+      <div><div class="k" style="color:var(--fg3);font-size:12px">${t('closest')}</div><div class="big" style="color:#ffb454">${minD===1e9?'—':minD}<span style="font-size:14px"> km</span></div><div style="font-size:12px;color:var(--fg3)">${esc(minT)}</div></div>
+      <div><div class="k" style="color:var(--fg3);font-size:12px">${t('risk')}</div><div class="big" style="color:#ffb454">${t('riskHigh')}</div></div>
     </div>
-    <div style="font-size:12.5px;color:var(--fg2);margin-top:10px;line-height:1.7">江阴市气象局警报：11–13日阵风<b style="color:var(--fg)">7~10级</b>（最强<b style="color:var(--fg)">12日白天</b>），长江江面9~10级；累计雨量50~90mm，主要在12日后半夜至13日。<b style="color:#ffb454">风大于雨</b>，江阴处路径右侧危险半圆。</div>`;
+    <div style="font-size:12.5px;color:var(--fg2);margin-top:10px;line-height:1.7">${t('warn')}</div>`;
 
-  let rows='<tr><th>时间</th><th>位置</th><th>强度</th><th>气压</th><th>距江阴</th></tr>';
+  let rows=`<tr><th>${t('thTime')}</th><th>${t('thPos')}</th><th>${t('thInt')}</th><th>${t('thPres')}</th><th>${t('thDist')}</th></tr>`;
   cma.forEach((p,i)=>{
     if(i===0&&p.time===cur.time)return;
     const dd=hav({lon:num(p.lng),lat:num(p.lat)},JY);
-    rows+=`<tr><td>${fmtT(p.time)}</td><td>${esc(p.lat)}°N ${esc(p.lng)}°E</td><td style="color:${catColor(p.strong)}">${esc(p.strong)} ${esc(p.power)}级</td><td>${esc(p.pressure)}</td><td${dd<=250?' style="color:#ffb454;font-weight:600"':''}>${dd}km</td></tr>`;
+    rows+=`<tr><td>${fmtT(p.time)}</td><td>${esc(p.lat)}°N ${esc(p.lng)}°E</td><td style="color:${catColor(p.strong)}">${esc(catName(p.strong))} ${t('lvl')(esc(p.power))}</td><td>${esc(p.pressure)}</td><td${dd<=250?' style="color:#ffb454;font-weight:600"':''}>${dd}km</td></tr>`;
   });
   $('fc-table').innerHTML=rows;
 
-  $('legend').innerHTML=Object.entries(CAT_COLOR).map(([k,c])=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px"><span class="dot" style="background:${c};width:8px;height:8px"></span>${k}</span>`).join('')
-    +`<br><span class="ln" style="border-top-style:solid;border-color:#94a3b8"></span> 已过路径 &nbsp;<span class="ln" style="border-top-style:dashed;border-color:#ff5757"></span> 预报路径 &nbsp;<span style="color:#fbbf24">◌</span> 7/10/12级风圈（示意）`;
+  $('legend').innerHTML=Object.entries(CAT_COLOR).map(([k,c])=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px"><span class="dot" style="background:${c};width:8px;height:8px"></span>${catName(k)}</span>`).join('')
+    +`<br><span class="ln" style="border-top-style:solid;border-color:#94a3b8"></span> ${t('pastTrack')} &nbsp;<span class="ln" style="border-top-style:dashed;border-color:#ff5757"></span> ${t('fcTrack')} &nbsp;<span style="color:#fbbf24">◌</span> ${t('windRing')}`;
 
-  $('agencies').innerHTML='<div style="color:var(--fg3);margin-bottom:4px">预报机构对比</div>'+AGENCY.map((a,i)=>`<label><input type="checkbox" data-i="${i}" ${a.on?'checked':''}><span class="ln" style="border-top-style:dashed;border-color:${a.color}"></span>${a.key}</label>`).join('');
+  $('agencies').innerHTML=`<div style="color:var(--fg3);margin-bottom:4px">${t('agencyCmp')}</div>`+AGENCY.map((a,i)=>`<label><input type="checkbox" data-i="${i}" ${a.on?'checked':''}><span class="ln" style="border-top-style:dashed;border-color:${a.color}"></span>${lang==='en'?a.en:a.key}</label>`).join('');
   $('agencies').querySelectorAll('input').forEach(cb=>cb.addEventListener('change',e=>{AGENCY[+e.target.dataset.i].on=e.target.checked;render();}));
 }
 
@@ -315,40 +370,46 @@ let drag=null;
 map.addEventListener('pointerdown',e=>{drag=[...evPt(e),vt.x,vt.y];map.classList.add('panning');map.setPointerCapture(e.pointerId);});
 map.addEventListener('pointermove',e=>{
   if(drag){const[p,q]=evPt(e);vt.x=drag[2]+p-drag[0];vt.y=drag[3]+q-drag[1];applyVT();return;}
-  const t=e.target.getAttribute&&e.target.getAttribute('data-tip');
+  const t2=e.target.getAttribute&&e.target.getAttribute('data-tip');
   const tt=$('tooltip');
-  if(t){const r=$('map-wrap').getBoundingClientRect();tt.style.display='block';tt.style.left=Math.min(e.clientX-r.left+14,r.width-220)+'px';tt.style.top=(e.clientY-r.top+10)+'px';tt.textContent=t;}
+  if(t2){const r=$('map-wrap').getBoundingClientRect();tt.style.display='block';tt.style.left=Math.min(e.clientX-r.left+14,r.width-220)+'px';tt.style.top=(e.clientY-r.top+10)+'px';tt.textContent=t2;}
   else tt.style.display='none';
 });
 map.addEventListener('pointerup',()=>{drag=null;map.classList.remove('panning');});
 $('z-in').onclick=()=>zoomAt(W/2,H/2,1.3);
 $('z-out').onclick=()=>zoomAt(W/2,H/2,.77);
 $('z-reset').onclick=()=>{vt={x:0,y:0,k:1};applyVT();};
+$('btn-lang').onclick=()=>{
+  lang=lang==='zh'?'en':'zh';
+  localStorage.setItem('ty-lang',lang);
+  applyStatic();
+  if(state.data)render();
+};
 
 const UP='https://typhoon.slt.zj.gov.cn/Api';
 async function fetchDirect(){
   const year=new Date().getFullYear();
   const list=await(await fetch(`${UP}/TyphoonList/${year}`)).json();
-  const active=(list||[]).filter(t=>t.isactive==='1');
+  const active=(list||[]).filter(t2=>t2.isactive==='1');
   const typhoons=[];
-  for(const t of active){
-    const info=await(await fetch(`${UP}/TyphoonInfo/${t.tfid}`)).json().catch(()=>null);
+  for(const t2 of active){
+    const info=await(await fetch(`${UP}/TyphoonInfo/${t2.tfid}`)).json().catch(()=>null);
     if(info)typhoons.push(info);
   }
   return {fetchedAt:new Date().toISOString(), typhoons, stale:false, direct:true};
 }
 async function load(){
-  $('countdown').textContent='刷新中…';
+  $('countdown').textContent=t('refreshing');
   let ok=false;
   try{
     const res=await fetch('/api/active',{cache:'no-store'});
-    if(!res.ok)throw new Error('本地服务 '+res.status);
+    if(!res.ok)throw new Error('local '+res.status);
     state.data=await res.json();ok=true;
   }catch(e1){
     try{state.data=await fetchDirect();ok=true;}
     catch(e2){
       $('alert').className='al-org';
-      $('alert').textContent=`数据获取失败（${String(e2.message||e2).slice(0,60)}），60秒后重试`;
+      $('alert').textContent=t('fail')(String(e2.message||e2).slice(0,60));
     }
   }
   if(ok){
@@ -360,12 +421,13 @@ async function load(){
 $('btn-refresh').onclick=load;
 setInterval(()=>{
   const s=Math.max(0,Math.round((nextAt-Date.now())/1000));
-  $('countdown').textContent=`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}后自动刷新`;
+  $('countdown').textContent=t('countdown')(Math.floor(s/60),String(s%60).padStart(2,'0'));
   if(Date.now()>=nextAt&&nextAt)load();
 },1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()>nextAt-REFRESH_MS+60e3)load();});
 
 (async()=>{
+  applyStatic();
   try{china=await(await fetch('china.json')).json();}
   catch(e){
     try{china=await(await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')).json();}
